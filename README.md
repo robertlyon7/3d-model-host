@@ -5,6 +5,7 @@
 | File | Size | Use |
 |---|---|---|
 | `office_building.glb` | ~4 MB | Office building exterior (Office Building 3D widget) |
+| `smart-office.glb` | ~2 MB | Office floor interior with named IoT devices (Office Building 3D widget) |
 
 Load URL (jsDelivr, CORS-enabled):
 `https://cdn.jsdelivr.net/gh/robertlyon7/3d-model-host@main/office_building.glb`
