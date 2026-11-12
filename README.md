@@ -7,7 +7,7 @@
 | `office_building.glb` | ~4 MB | Office building exterior (Office Building 3D widget) |
 
 Load URL (jsDelivr, CORS-enabled):
-`https://cdn.jsdelivr.net/gh/<owner>/<repo>@main/office_building.glb`
+`https://cdn.jsdelivr.net/gh/robertlyon7/3d-model-host@main/office_building.glb`
 
 ## Credits
 
