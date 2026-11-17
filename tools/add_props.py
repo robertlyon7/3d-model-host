@@ -79,9 +79,9 @@ def flow_meter(X):
 
 PROPS = [('SLP_DG_01', 'Devices_Lights', light_post(-8.62, 3.05)),
          ('KSK_RC_01', 'Devices_Panels', kiosk(-6.32, -0.4)),
-         ('FLW_PIPE_01', 'Devices_Water', {'metal': [pipe_x(-14.4, 5.4, PIPE_Y, PIPE_Z, 0.04)]}),
-         ('FLW_TM_01', 'Devices_Water', flow_meter(-9.55)),   # men's toilet, under the end urinal
-         ('FLW_TW_01', 'Devices_Water', flow_meter(1.28))]    # women's toilet, by the first stall
+         ('FLW_PIPE_01', 'Devices_Water', {'metal': [pipe_x(-14.4, 5.8, PIPE_Y, PIPE_Z, 0.04)]}),
+         ('FLW_TM_01', 'Devices_Water', flow_meter(-9.55)),   # men's toilet, above the end urinal
+         ('FLW_TW_01', 'Devices_Water', flow_meter(5.68))]    # women's toilet, past the last stall (stall doors hide the rest)
 
 b = open(src, 'rb').read()
 jl = struct.unpack('<I', b[12:16])[0]
