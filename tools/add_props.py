@@ -8,6 +8,8 @@
   A black panel (<TV>__back) is added just behind each listed screen, on the side away from the room.
 - Rebuilt: PC_16 (reception monitor) sat at normal-desk height inside the 1.05 m counter, turned sideways.
   It now stands on the counter facing the receptionist's chair (+z), screen only on its front face.
+- Moved: CCTV_02 (Makerspace camera 1) hung outside the Makerspace's south wall, looking into the corridor.
+  It now sits in the room's south-west corner, mirroring camera 2 (CCTV_07) in the north-west one, lens into the room.
 The widget skips unknown device kinds (SLP, KSK), so both show as plain objects until it learns them.
 Reuses the file's own materials. Re-running on its own output replaces them (the old bytes stay, unused).
 Usage: python add_props.py <in.glb> <out.glb>
@@ -106,7 +108,11 @@ REBUILD = [('PC_16', monitor(-3.45, 0.0, 1.05))]  # reception counter top is 1.0
 
 # TVs whose back shows the screen: (TV node, a floor point in the room the screen faces)
 BACK_PANELS = [('DSP_DG_01', (-11, 5)), ('DSP_DG_02', (-11, 5)), ('DSP_DG_03', (-11, 5.8)),  # Showcase Gallery
-               ('DSP_MK_01', (19, 4))]                                                       # standing TV, Makerspace
+               ('DSP_MK_01', (19, 4)),                                                       # standing TV, Makerspace
+               ('DSP_KT_01', (-6.4, 5))]                                                     # Kitchen (pantry)
+
+# Devices moved as a whole: (node, new centre x, z on the floor plan, turn in degrees about the vertical).
+MOVES = [('CCTV_02', 15.4, -2.65, 180)]  # Makerspace SW corner; the turn points its lens (+x, -z) into the room
 
 
 def accessor_data(i):
@@ -156,6 +162,19 @@ for tv, (rx, rz) in BACK_PANELS:
     c = v.mean(0)
     away = np.sign(np.dot(depth[[0, 2]], c[[0, 2]] - np.array([rx, rz]))) or 1.0
     node['children'].append(add_mesh(tv + '__back', v + away * depth * 1.05, accessor_data(prim['indices']).copy(), 'tv_back'))
+
+for name, x, z, turn in MOVES:
+    node = next(n for n in j['nodes'] if n.get('name') == name)
+    kids = [j['nodes'][c] for c in node['children']]
+    parts = [(k['name'], j['meshes'][k['mesh']]['primitives'][0]) for k in kids]
+    allv = np.vstack([accessor_data(p['attributes']['POSITION']) for _, p in parts])
+    centre = (allv.min(0) + allv.max(0)) / 2
+    a = math.radians(turn)
+    rot = np.array([[math.cos(a), 0, math.sin(a)], [0, 1, 0], [-math.sin(a), 0, math.cos(a)]], np.float32)
+    shift = np.array([x, centre[1], z], np.float32)
+    node['children'] = [add_mesh(n, (accessor_data(p['attributes']['POSITION']) - centre) @ rot.T + shift,
+                                 accessor_data(p['indices']).copy(), j['materials'][p['material']]['name'])
+                        for n, p in parts]
 
 for name, parts in REBUILD:
     node = next(n for n in j['nodes'] if n.get('name') == name)
