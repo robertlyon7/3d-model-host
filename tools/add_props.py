@@ -10,7 +10,10 @@
   It now stands on the counter facing the receptionist's chair (+z), screen only on its front face.
 - Moved: CCTV_02 (Makerspace camera 1) hung outside the Makerspace's south wall, looking into the corridor.
   It now sits in the room's south-west corner, mirroring camera 2 (CCTV_07) in the north-west one, lens into the room.
-The widget skips unknown device kinds (SLP, KSK), so both show as plain objects until it learns them.
+- LCK_01, locker bank (Devices_Lockers): in the corridor outside the Workshop, against its west wall, in place of
+  the grey block that stood there. 3 rows of 6 doors (01-06 bottom, 13-18 top), numbered at each door's top right;
+  the doors, gaps and numbers are one picture on the front (locker_doors).
+The widget skips unknown device kinds (SLP, KSK, LCK), so they show as plain objects until it learns them.
 Reuses the file's own materials. Re-running on its own output replaces them (the old bytes stay, unused).
 Usage: python add_props.py <in.glb> <out.glb>
 """
@@ -138,18 +141,70 @@ def join(shapes):  # several (vertices, faces) into one
     return np.vstack(vs), np.concatenate(fs)
 
 
-def add_mesh(name, v, f, material):
+def add_mesh(name, v, f, material, uv=None):
     v = np.ascontiguousarray(v, np.float32)  # glTF positions are 32-bit floats
     j['accessors'].append({'bufferView': add_view(v.tobytes(), 34962), 'componentType': 5126, 'count': len(v),
                            'type': 'VEC3', 'min': v.min(0).tolist(), 'max': v.max(0).tolist()})
-    pos = len(j['accessors']) - 1
+    attrs = {'POSITION': len(j['accessors']) - 1}
+    if uv is not None:
+        j['accessors'].append({'bufferView': add_view(np.asarray(uv, np.float32).tobytes(), 34962), 'componentType': 5126,
+                               'count': len(uv), 'type': 'VEC2'})
+        attrs['TEXCOORD_0'] = len(j['accessors']) - 1
     j['accessors'].append({'bufferView': add_view(f.astype(np.uint32).tobytes(), 34963), 'componentType': 5125,
                            'count': int(f.size), 'type': 'SCALAR'})
     j['meshes'].append({'name': name, 'primitives': [
-        {'attributes': {'POSITION': pos}, 'indices': len(j['accessors']) - 1, 'mode': 4, 'material': mat[material]}]})
+        {'attributes': attrs, 'indices': len(j['accessors']) - 1, 'mode': 4, 'material': mat[material]}]})
     j['nodes'].append({'name': name, 'mesh': len(j['meshes']) - 1})
     return len(j['nodes']) - 1
 
+
+# Locker bank: front face at LOCKER_X facing the corridor (-x), from LOCKER_Z0 (door 01's side) to LOCKER_Z1,
+# back on the Workshop wall. Doors 0.5 m wide (6 in 3 m) and LOCKER_DOOR_H tall, as in the photo.
+LOCKER_X, LOCKER_BACK, LOCKER_Z0, LOCKER_Z1 = 15.48, 15.94, -0.85, 2.15
+LOCKER_DOOR_H, LOCKER_PLINTH, LOCKER_ROWS, LOCKER_COLS = 0.85, 0.06, 3, 6
+LOCKER_GREY = (172, 181, 190)  # the doors' blue-grey (sRGB)
+
+
+def locker_texture(px=256):  # px per door width
+    from io import BytesIO
+    from PIL import Image, ImageDraw, ImageFont
+    dw, dh = px, round(px * LOCKER_DOOR_H / ((LOCKER_Z1 - LOCKER_Z0) / LOCKER_COLS))
+    im = Image.new('RGB', (dw * LOCKER_COLS, dh * LOCKER_ROWS), (70, 76, 82))  # the gaps between doors
+    d = ImageDraw.Draw(im)
+    font = ImageFont.truetype('arialbd.ttf', round(dh * 0.1))
+    for r in range(LOCKER_ROWS):  # r 0 is the top row
+        for c in range(LOCKER_COLS):
+            x, y = c * dw, r * dh
+            d.rectangle([x + 2, y + 2, x + dw - 3, y + dh - 3], fill=LOCKER_GREY)
+            d.rectangle([x + 2, y + dh - 13, x + dw - 3, y + dh - 3], fill=(112, 120, 128))  # handle groove
+            n = (LOCKER_ROWS - 1 - r) * LOCKER_COLS + c + 1
+            d.text((x + dw * 0.9, y + dh * 0.05), '%02d' % n, font=font, fill=(38, 41, 45), anchor='ra')
+    buf = BytesIO()
+    im.save(buf, 'PNG', optimize=True)
+    return buf.getvalue()
+
+
+def locker():
+    top = LOCKER_PLINTH + LOCKER_ROWS * LOCKER_DOOR_H
+    return {'darkgrey': [box(LOCKER_X + 0.04, 0, LOCKER_Z0 + 0.02, LOCKER_BACK, LOCKER_PLINTH, LOCKER_Z1 - 0.02)],  # plinth
+            'locker': [box(LOCKER_X + 0.01, LOCKER_PLINTH, LOCKER_Z0, LOCKER_BACK, top + 0.02, LOCKER_Z1)]}         # body
+
+
+if 'locker' not in mat:
+    lin = [(c / 255) ** 2.2 for c in LOCKER_GREY] + [1.0]  # glTF colour factors are linear
+    j['materials'].append({'name': 'locker', 'pbrMetallicRoughness': {'baseColorFactor': lin, 'roughnessFactor': 0.35, 'metallicFactor': 0.1}})
+    view = add_view(locker_texture(), None)
+    del j['bufferViews'][view]['target']  # an image, not vertex data
+    j.setdefault('images', []).append({'bufferView': view, 'mimeType': 'image/png'})
+    j.setdefault('samplers', []).append({})
+    j.setdefault('textures', []).append({'source': len(j['images']) - 1, 'sampler': len(j['samplers']) - 1})
+    j['materials'].append({'name': 'locker_doors', 'pbrMetallicRoughness': {
+        'baseColorTexture': {'index': len(j['textures']) - 1}, 'roughnessFactor': 0.35, 'metallicFactor': 0.1}})
+    mat = {m['name']: i for i, m in enumerate(j['materials'])}
+
+# The grey block outside the Workshop that the lockers replace (it is this mesh's only shape).
+next(n for n in j['nodes'] if n.get('name') == 'Circulation__midgrey').pop('mesh', None)
+PROPS.append(('LCK_01', 'Devices_Lockers', locker()))
 
 for tv, (rx, rz) in BACK_PANELS:
     node = next(n for n in j['nodes'] if n.get('name') == tv)
@@ -193,6 +248,13 @@ for name, group_name, parts in PROPS:
         children.append(add_mesh(name + '__' + m, v, f, m))
     j['nodes'].append({'name': name, 'children': children})
     group['children'].append(len(j['nodes']) - 1)
+
+# The locker's door front: one picture on a quad just in front of the body. Seen from the corridor (+x ahead),
+# +z is to the right, so door 01 is at LOCKER_Z0. glTF puts uv (0, 0) at the picture's top left.
+y0, y1 = LOCKER_PLINTH, LOCKER_PLINTH + LOCKER_ROWS * LOCKER_DOOR_H
+front = [[LOCKER_X, y0, LOCKER_Z0], [LOCKER_X, y0, LOCKER_Z1], [LOCKER_X, y1, LOCKER_Z1], [LOCKER_X, y1, LOCKER_Z0]]
+[n for n in j['nodes'] if n.get('name') == 'LCK_01'][-1]['children'].append(
+    add_mesh('LCK_01__doors', front, np.array([0, 1, 2, 0, 2, 3]), 'locker_doors', uv=[[0, 1], [1, 1], [1, 0], [0, 0]]))
 
 while len(binc) % 4:
     binc.append(0)
