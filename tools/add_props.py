@@ -11,7 +11,7 @@
 - Moved: CCTV_02 (Makerspace camera 1) hung outside the Makerspace's south wall, looking into the corridor.
   It now sits in the room's south-west corner, mirroring camera 2 (CCTV_07) in the north-west one, lens into the room.
 - LCK_01, locker bank (Devices_Lockers): in the corridor outside the Workshop, against its west wall, in place of
-  the grey block that stood there. 3 rows of 6 doors (01-06 bottom, 13-18 top), numbered at each door's top right;
+  the grey block that stood there. 3 rows of 6 doors (01-06 bottom, 13-18 top), numbered at each door's top left;
   the doors, gaps and numbers are one picture on the front (lck_01_doors).
 - LCK_02, locker bank (Devices_Lockers): Makerspace, centred on its west wall facing the tables. Blue, 3 rows of
   8 doors (01-08 bottom, 17-24 top), white numbers at each door's top left.
@@ -165,8 +165,8 @@ def add_mesh(name, v, f, material, uv=None):
 # the wall at `back`; the bank spans z0..z1 (z0 < z1). sRGB colours: door, gap between doors, handle groove, numbers.
 LOCKER_DOOR_H, LOCKER_PLINTH, LOCKER_ROWS = 0.85, 0.06, 3
 LOCKERS = [
-    # Corridor outside the Workshop, on its west wall, in place of a grey block. Grey; dark numbers at the top right.
-    dict(name='LCK_01', x=15.48, back=15.94, face=-1, z0=-0.85, z1=2.15, cols=6, corner='right',
+    # Corridor outside the Workshop, on its west wall, in place of a grey block. Grey; dark numbers at the top left.
+    dict(name='LCK_01', x=15.48, back=15.94, face=-1, z0=-0.85, z1=2.15, cols=6, corner='left',
          door=(172, 181, 190), gap=(70, 76, 82), groove=(112, 120, 128), ink=(38, 41, 45)),
     # Makerspace, centred on its west wall, facing the tables. Blue; white numbers at the top left.
     dict(name='LCK_02', x=14.36, back=14.3, face=1, z0=-7.4, z1=-3.4, cols=8, corner='left',
